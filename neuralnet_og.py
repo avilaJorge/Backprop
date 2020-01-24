@@ -28,21 +28,14 @@ def normalize_data(img):
     """
     Normalize your inputs here and return them.
     """
-    return np.divide(np.subtract(img, img.min()), img.max()-img.min())
+    return img
 
 
 def one_hot_encoding(labels, num_classes=10):
     """
     Encode labels using one hot encoding and return them.
     """
-    # res = np.zeros((len(labels), num_classes))
-    # for label in labels:
-    #     res[label] = 1
-    # return res 
-    return np.array([[0 for a in range(0,label)]+
-                    [1]+
-                    [0 for b in range(label+1,num_classes)] 
-                    for label in labels])
+    return labels
 
 
 def load_data(path, mode='train'):
@@ -71,12 +64,7 @@ def softmax(x):
     Implement the softmax function here.
     Remember to take care of the overflow condition.
     """
-    # raise NotImplementedError("Softmax not implemented")
-    # Using this: https://stats.stackexchange.com/questions/304758/softmax-overflow
-    x_reduced = np.subtract(x, x.max())
-    norm_fac = np.sum(np.exp(x_reduced))
-    return np.divide(np.exp(x_reduced), norm_fac)
-
+    raise NotImplementedError("Softmax not implemented")
 
 
 class Activation():
@@ -140,52 +128,37 @@ class Activation():
         """
         Implement the sigmoid activation here.
         """
-        # raise NotImplementedError("Sigmoid not implemented")
-        res = np.divide(1., (np.add(1., np.exp(-x))))
-        self.grad_ = np.multiply(res, np.subtract(1., res))
-        return res
+        raise NotImplementedError("Sigmoid not implemented")
 
     def tanh(self, x):
         """
         Implement tanh here.
         """
-        # raise NotImplementedError("Tanh not implemented")
-        res = np.tanh(x)
-        self.grad_ = np.subtract(1., np.power(res, 2))
-        return res
+        raise NotImplementedError("Tanh not implemented")
 
     def ReLU(self, x):
         """
         Implement ReLU here.
         """
-        # raise NotImplementedError("ReLu not implemented")
-        res = np.maximum(np.zeros(x.shape), x)
-        self.grad_ = np.greater(x, np.zeros(x.shape), dtype=int)
-        return res
+        raise NotImplementedError("ReLu not implemented")
 
     def grad_sigmoid(self):
         """
         Compute the gradient for sigmoid here.
         """
-        # raise NotImplementedError("Sigmoid gradient not implemented")
-        # sigmoid(x) * (1 - sigmoid(x))
-        return self.grad_
+        raise NotImplementedError("Sigmoid gradient not implemented")
 
     def grad_tanh(self):
         """
         Compute the gradient for tanh here.
         """
-        # raise NotImplementedError("tanh gradient not implemented")
-        # 1 - (tanh(x)^2)
-        return self.grad_
+        raise NotImplementedError("tanh gradient not implemented")
 
     def grad_ReLU(self):
         """
         Compute the gradient for ReLU here.
         """
-        # raise NotImplementedError("ReLU gradient not implemented")
-        # if x <= 0: return 0, else return 1
-        return self.grad_
+        raise NotImplementedError("ReLU gradient not implemented")
 
 
 class Layer():
@@ -203,8 +176,8 @@ class Layer():
         Define the architecture and create placeholder.
         """
         np.random.seed(42)
-        self.w = np.random.rand((in_units, out_units))    # Declare the Weight matrix
-        self.b = np.ones((in_units, 1))    # Create a placeholder for Bias
+        self.w = None    # Declare the Weight matrix
+        self.b = None    # Create a placeholder for Bias
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
 
@@ -224,10 +197,7 @@ class Layer():
         Do not apply activation here.
         Return self.a
         """
-        # raise NotImplementedError("Layer forward pass not implemented.")
-        # Assume x is batch first
-        self.a = np.matmul(self.x, self.w)
-        return self.a 
+        raise NotImplementedError("Layer forward pass not implemented.")
 
     def backward(self, delta):
         """
@@ -235,9 +205,7 @@ class Layer():
         computes gradient for its weights and the delta to pass to its previous layers.
         Return self.dx
         """
-        # delta * 
         raise NotImplementedError("Backprop for Layer not implemented.")
-
 
 
 class Neuralnetwork():
