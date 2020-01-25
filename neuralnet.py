@@ -28,7 +28,10 @@ def normalize_data(img):
     """
     Normalize your inputs here and return them.
     """
-    return np.divide(np.subtract(img, img.min()), img.max()-img.min())
+    normalized = np.divide(np.subtract(img, img.min()), img.max()-img.min())
+    centered = normalized - normalized.mean()
+    standardized = centered / centered.std()
+    return standardized
 
 
 def one_hot_encoding(labels, num_classes=10):
