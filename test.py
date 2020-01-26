@@ -39,11 +39,11 @@ print(np.max(Y))
 print(y_sample[0])
 
 # Example usage for Sklearn StratifiedKFold
-skf = StratifiedKFold(n_splits=10)
-skf.get_n_splits()
-for train_index, test_index in skf.split(X=x_train, y=from_one_hot(y_train, NUM_CATEGORIES)):
-    print("TRAIN: ", train_index, " TEST: ", test_index)
-    A = y_train[train_index]
-    B = y_train[test_index]
-    print("Train Counts: ", np.sum(A, axis=0))
-    print("Test Counts: ", np.sum(B, axis=0))
+# skf = StratifiedKFold(n_splits=10)
+# skf.get_n_splits()
+# for train_index, test_index in skf.split(X=x_train, y=from_one_hot(y_train, NUM_CATEGORIES)):
+#     print("TRAIN: ", train_index, " TEST: ", test_index)
+#     A = y_train[train_index]
+#     B = y_train[test_index]
+#     print("Train Counts: ", np.sum(A, axis=0))
+#     print("Test Counts: ", np.sum(B, axis=0))
