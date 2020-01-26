@@ -285,21 +285,24 @@ class Neuralnetwork():
         If targets are provided, return loss as well.
         """
         z = copy.deepcopy(x)
+        self.x = z
         loss = targets
 
         for layer in self.layers:
             z = layer(z)
-        y = softmax(z)
+        self.y = softmax(z)
 
         if loss is not None:
-            loss = self.loss(y, targets)
+            self.targets = targets
+            loss = self.loss(self.y, targets)
 
-        return y, loss
+        return self.y, loss
 
     def loss(self, logits, targets):
         '''
         compute the categorical cross-entropy loss and return it.
         '''
+        # TODO: Are we expected to convert logits here?
         return np.dot(targets.T, np.log(logits))
 
     def backward(self):
@@ -307,7 +310,10 @@ class Neuralnetwork():
         Implement backpropagation here.
         Call backward methods of individual layer's.
         '''
-        raise NotImplementedError("Backprop not implemented for NeuralNetwork")
+        delta = copy.deepcopy(self.y)
+        for layer in reversed(self.layers):
+            delta = layer.backward(delta)
+
 
 
 def train(model, x_train, y_train, x_valid, y_valid, config):
