@@ -12,7 +12,7 @@
 # https://scipy.org/install.html
 ################################################################################
 
-import os, gzip
+import os, gzip, copy
 import yaml
 import numpy as np
 
@@ -78,7 +78,7 @@ def softmax(x):
     # Using this: https://stats.stackexchange.com/questions/304758/softmax-overflow
     x_reduced = np.subtract(x, x.max())
     norm_fac = np.sum(np.exp(x_reduced))
-    return np.divide(np.exp(x_reduced), norm_fac)
+    return np.divide(np.exp(x_reduced), norm_fac).T
 
 
 
@@ -206,7 +206,7 @@ class Layer():
         Define the architecture and create placeholder.
         """
         np.random.seed(42)
-        self.w = np.random.rand((in_units, out_units))    # Declare the Weight matrix
+        self.w = np.random.rand(in_units, out_units)    # Declare the Weight matrix
         self.b = np.ones((in_units, 1))    # Create a placeholder for Bias
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
@@ -229,8 +229,9 @@ class Layer():
         """
         # raise NotImplementedError("Layer forward pass not implemented.")
         # Assume x is batch first
-        self.a = np.matmul(self.x, self.w)
-        return self.a 
+        self.x = x.reshape(np.max(x.shape), 1);
+        self.a = np.matmul(self.x.T, self.w)
+        return self.a
 
     def backward(self, delta):
         """
@@ -238,8 +239,12 @@ class Layer():
         computes gradient for its weights and the delta to pass to its previous layers.
         Return self.dx
         """
-        # delta * 
-        raise NotImplementedError("Backprop for Layer not implemented.")
+        # delta *
+        self.d_x = np.matmul(self.w, delta)
+        self.d_w = np.multiply(self.d_x, self.x)
+        # TODO: Add learning rate.
+        self.w = np.add(self.w, self.d_w)
+        return self.d_x
 
 
 
@@ -279,13 +284,23 @@ class Neuralnetwork():
         Compute forward pass through all the layers in the network and return it.
         If targets are provided, return loss as well.
         """
-        raise NotImplementedError("Forward not implemented for NeuralNetwork")
+        z = copy.deepcopy(x)
+        loss = targets
+
+        for layer in self.layers:
+            z = layer(z)
+        y = softmax(z)
+
+        if loss is not None:
+            loss = self.loss(y, targets)
+
+        return y, loss
 
     def loss(self, logits, targets):
         '''
         compute the categorical cross-entropy loss and return it.
         '''
-        raise NotImplementedError("Loss not implemented for NeuralNetwork")
+        return np.dot(targets.T, np.log(logits))
 
     def backward(self):
         '''
