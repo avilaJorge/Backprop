@@ -78,8 +78,14 @@ def softmax(x):
     # Using this: https://stats.stackexchange.com/questions/304758/softmax-overflow
     x_reduced = np.subtract(x, x.max())
     norm_fac = np.sum(np.exp(x_reduced))
-    return np.divide(np.exp(x_reduced), norm_fac).T
+    return np.divide(np.exp(x_reduced), norm_fac)
 
+def grad_softmax(s):
+    g_prime = np.diag(s)
+    for i in range(len(g_prime)):
+        for j in range(len(g_prime)):
+            g_prime[i][j] = s[i]*(1-s[j]) if i == j else -1*s[i]*s[j]
+    return g_prime
 
 
 class Activation():
@@ -207,7 +213,7 @@ class Layer():
         """
         np.random.seed(42)
         self.w = np.random.rand(in_units, out_units)    # Declare the Weight matrix
-        self.b = np.ones((in_units, 1))    # Create a placeholder for Bias
+        self.b = None    # Create a placeholder for Bias
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
 
@@ -227,10 +233,10 @@ class Layer():
         Do not apply activation here.
         Return self.a
         """
-        # raise NotImplementedError("Layer forward pass not implemented.")
+        # Bias Initialized to 0 according to https://piazza.com/class/k53fkn2c83f53l?cid=197
         # Assume x is batch first
-        self.x = x.reshape(np.max(x.shape), 1);
-        self.a = np.matmul(self.x.T, self.w)
+        self.x = x
+        self.a = np.matmul(self.x, self.w)
         return self.a
 
     def backward(self, delta):
@@ -240,7 +246,7 @@ class Layer():
         Return self.dx
         """
         # delta *
-        self.d_x = np.matmul(self.w, delta)
+        self.d_x = np.matmul(delta, self.w.T)
         self.d_w = np.multiply(self.d_x, self.x)
         # TODO: Add learning rate.
         self.w = np.add(self.w, self.d_w)
@@ -284,13 +290,12 @@ class Neuralnetwork():
         Compute forward pass through all the layers in the network and return it.
         If targets are provided, return loss as well.
         """
-        z = copy.deepcopy(x)
-        self.x = z
+        self.x = copy.deepcopy(x)
         loss = targets
 
         for layer in self.layers:
-            z = layer(z)
-        self.y = softmax(z)
+            self.x = layer(self.x)
+        self.y = np.array([softmax(z_i) for z_i in self.x])
 
         if loss is not None:
             self.targets = targets
@@ -302,15 +307,22 @@ class Neuralnetwork():
         '''
         compute the categorical cross-entropy loss and return it.
         '''
-        # TODO: Are we expected to convert logits here?
+        # TODO: Are we expected to convert logits (i.e. call softmax) here?
         return np.dot(targets.T, np.log(logits))
+
+    def grad_loss(self, logits, targets):
+        '''
+        compute the gradient w.r.t y of cross-entropy loss
+        '''
+        return -1 * np.dot(1/logits, targets)
 
     def backward(self):
         '''
         Implement backpropagation here.
         Call backward methods of individual layer's.
         '''
-        delta = copy.deepcopy(self.y)
+        delta = [grad_softmax(y)*self.grad_loss(y, t) for y, t in zip(self.y, self.targets)]
+        delta = np.sum(delta, axis=0)/len(delta)
         for layer in reversed(self.layers):
             delta = layer.backward(delta)
 

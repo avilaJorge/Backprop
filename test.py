@@ -23,6 +23,10 @@ def get_samples(labels, num_cats):
             break
     return samples
 
+F = np.arange(1, 6)
+G = 1/F
+print(G)
+
 
 config = neuralnet.load_config("./")
 x_train, y_train = neuralnet.load_data(path="./", mode="train")
@@ -32,7 +36,9 @@ y_sample = y_train[sample_idx]
 
 epsilon = 10e-2
 net = neuralnet.Neuralnetwork(config)
-Y, loss = net.forward(x_sample[0], y_sample[0].reshape(10, 1))
+Y, loss = net.forward(x_sample, y_sample)
+net.backward()
+print(net.layers)
 print(Y)
 print(np.sum(Y))
 print(np.max(Y))
