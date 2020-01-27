@@ -29,10 +29,7 @@ sample_idx = get_samples(y_train, NUM_CATEGORIES)
 x_sample = x_train[sample_idx]
 y_sample = y_train[sample_idx]
 
-A = np.diag(np.arange(1, 11))
-B = np.tanh(A)
-
-epsilon = 10e-3
+epsilon = 10e-2
 layer = 0
 net = neuralnet.Neuralnetwork(config)
 net.layers[layer].w += epsilon
@@ -42,7 +39,7 @@ y_lo, loss_lo = net.forward(x_sample, y_sample)
 net.layers[layer].w += epsilon
 approx = (loss_hi - loss_lo)/(2*epsilon)
 net.backward()
-actual = np.sum(net.layers[layer].d_w)/net.layers[layer].d_w.shape[0]
+actual = np.mean(net.layers[layer].d_w)
 diff = np.abs(approx - actual)
 pass_test = (diff <= epsilon**2)
 print(approx, actual)

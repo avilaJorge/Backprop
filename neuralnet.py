@@ -215,7 +215,7 @@ class Layer():
         Define the architecture and create placeholder.
         """
         np.random.seed(42)
-        self.w = np.random.random_sample((in_units, out_units))   # Declare the Weight matrix
+        self.w = np.random.normal(0, 1/np.sqrt(in_units), (in_units, out_units))  # Declare the Weight matrix
         self.b = None    # Create a placeholder for Bias
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
@@ -250,11 +250,10 @@ class Layer():
         """
         # delta *
         self.d_x = np.matmul(self.w, -1 * delta.T).T
-        self.d_w = np.multiply(average(self.d_x), average(self.x))
+        self.d_w = np.dot(self.x.T, delta)
         # TODO: Add learning rate.
         self.w = np.subtract(self.w, self.d_w)
         return self.d_x
-
 
 
 class Neuralnetwork():
