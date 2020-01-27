@@ -162,7 +162,8 @@ class Activation():
         Implement tanh here.
         """
         # raise NotImplementedError("Tanh not implemented")
-        res = np.tanh(x)
+        res = 1.7159*np.tanh((2/3)*x)
+        # res = np.tanh(x)
         self.grad_ = np.subtract(1., np.power(res, 2))
         return res
 

@@ -2,6 +2,7 @@ import neuralnet
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from sklearn import datasets
+from PCA import PCA
 
 NUM_CATEGORIES = 10
 
