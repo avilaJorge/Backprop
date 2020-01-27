@@ -23,26 +23,29 @@ def get_samples(labels, num_cats):
             break
     return samples
 
-F = np.arange(1, 6)
-G = 1/F
-print(G)
-
-
 config = neuralnet.load_config("./")
 x_train, y_train = neuralnet.load_data(path="./", mode="train")
 sample_idx = get_samples(y_train, NUM_CATEGORIES)
 x_sample = x_train[sample_idx]
 y_sample = y_train[sample_idx]
 
-epsilon = 10e-2
+A = np.diag(np.arange(1, 11))
+B = np.tanh(A)
+
+epsilon = 10e-3
+layer = 0
 net = neuralnet.Neuralnetwork(config)
-Y, loss = net.forward(x_sample, y_sample)
+net.layers[layer].w += epsilon
+y_hi, loss_hi = net.forward(x_sample, y_sample)
+net.layers[layer].w -= (2*epsilon)
+y_lo, loss_lo = net.forward(x_sample, y_sample)
+net.layers[layer].w += epsilon
+approx = (loss_hi - loss_lo)/(2*epsilon)
 net.backward()
-print(net.layers)
-print(Y)
-print(np.sum(Y))
-print(np.max(Y))
-print(y_sample[0])
+actual = np.sum(net.layers[layer].d_w)/net.layers[layer].d_w.shape[0]
+diff = np.abs(approx - actual)
+pass_test = (diff <= epsilon**2)
+print(approx, actual)
 
 # Example usage for Sklearn StratifiedKFold
 # skf = StratifiedKFold(n_splits=10)

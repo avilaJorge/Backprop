@@ -80,12 +80,13 @@ def softmax(x):
     norm_fac = np.sum(np.exp(x_reduced))
     return np.divide(np.exp(x_reduced), norm_fac)
 
-def grad_softmax(s):
-    g_prime = np.diag(s)
-    for i in range(len(g_prime)):
-        for j in range(len(g_prime)):
-            g_prime[i][j] = s[i]*(1-s[j]) if i == j else -1*s[i]*s[j]
-    return g_prime
+
+def average(x):
+    """
+    Helper function for average across the n samples
+    Input vector should be nxd, where n is the number of samples
+    """
+    return (np.sum(x, axis=0)/x.shape[0]).reshape((-1, 1))
 
 
 class Activation():
@@ -116,6 +117,8 @@ class Activation():
         This method allows your instances to be callable.
         """
         return self.forward(a)
+
+
 
     def forward(self, a):
         """
@@ -212,7 +215,7 @@ class Layer():
         Define the architecture and create placeholder.
         """
         np.random.seed(42)
-        self.w = np.random.rand(in_units, out_units)    # Declare the Weight matrix
+        self.w = np.random.random_sample((in_units, out_units))   # Declare the Weight matrix
         self.b = None    # Create a placeholder for Bias
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
@@ -246,10 +249,10 @@ class Layer():
         Return self.dx
         """
         # delta *
-        self.d_x = np.matmul(delta, self.w.T)
-        self.d_w = np.multiply(self.d_x, self.x)
+        self.d_x = np.matmul(self.w, -1 * delta.T).T
+        self.d_w = np.multiply(average(self.d_x), average(self.x))
         # TODO: Add learning rate.
-        self.w = np.add(self.w, self.d_w)
+        self.w = np.subtract(self.w, self.d_w)
         return self.d_x
 
 
@@ -272,6 +275,7 @@ class Neuralnetwork():
         self.x = None        # Save the input to forward in this
         self.y = None        # Save the output vector of model in this
         self.targets = None  # Save the targets in forward in this variable
+        self.num_samples = 0 # Number of samples in input
 
         # Add layers specified by layer_specs.
         for i in range(len(config['layer_specs']) - 1):
@@ -291,6 +295,7 @@ class Neuralnetwork():
         If targets are provided, return loss as well.
         """
         self.x = copy.deepcopy(x)
+        self.num_samples = self.x.shape[0]
         loss = targets
 
         for layer in self.layers:
@@ -299,7 +304,7 @@ class Neuralnetwork():
 
         if loss is not None:
             self.targets = targets
-            loss = self.loss(self.y, targets)
+            loss = np.sum([self.loss(y_i, targets) for y_i in self.y])/self.num_samples
 
         return self.y, loss
 
@@ -308,7 +313,7 @@ class Neuralnetwork():
         compute the categorical cross-entropy loss and return it.
         '''
         # TODO: Are we expected to convert logits (i.e. call softmax) here?
-        return np.dot(targets.T, np.log(logits))
+        return -1 * np.dot(targets.T, np.log(logits))
 
     def grad_loss(self, logits, targets):
         '''
@@ -321,11 +326,9 @@ class Neuralnetwork():
         Implement backpropagation here.
         Call backward methods of individual layer's.
         '''
-        delta = [grad_softmax(y)*self.grad_loss(y, t) for y, t in zip(self.y, self.targets)]
-        delta = np.sum(delta, axis=0)/len(delta)
+        delta = np.array([np.subtract(y, t) for y, t in zip(self.y, self.targets)])
         for layer in reversed(self.layers):
             delta = layer.backward(delta)
-
 
 
 def train(model, x_train, y_train, x_valid, y_valid, config):
