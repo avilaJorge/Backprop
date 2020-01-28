@@ -224,7 +224,8 @@ class Layer():
         self.b = 0    # Create a placeholder for Bias
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
-
+        self.in_units = in_units
+        self.out_units = out_units
         self.d_x = None  # Save the gradient w.r.t x in this
         self.d_w = None  # Save the gradient w.r.t w in this
         self.d_b = 0  # Save the gradient w.r.t b in this
@@ -255,8 +256,29 @@ class Layer():
         """
         # delta *
         # print(delta.shape, self.w.shape)
-        self.d_x = np.matmul(self.w, -delta.T).T 
-        self.d_w = np.matmul(self.x.T, delta)
+
+        # print(self.x.T.shape)
+        # print(delta.shape)
+        # self.d_w = np.matmul(self.x.T, delta)
+        d_x_temp = []
+        d_w_temp = np.zeros(self.w.shape)
+        for i in range(128):
+            
+            temp = []
+            for j in range(self.in_units):
+                buffer = 0
+                for k in range(self.out_units):
+                    buffer += delta[i][k]*self.w[j][k]
+                temp.append(buffer)
+            d_x_temp.append(temp)  
+            
+
+            d_w_temp += np.outer(self.x.T[:,i], delta[i,:])
+        
+        self.d_w = d_w_temp
+        self.d_x = np.array(d_x_temp)
+        # print(self.d_w.shape)
+        # print("--------------")
         # print("x")
         # print(self.x.T)
         # TODO: Add learning rate.
@@ -368,6 +390,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     for e in range(config["epochs"]):
         loss_sum = 0.
         b_start = 0
+        correct = 0
         print("----Epoch %d ---"%e)
         while b_start < x_train.shape[0]-1:
             # initial = (model.layers[0].w, model.layers[2].w,model.layers[4].w)
@@ -378,6 +401,12 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
             # print("--- backward - batch %d----"%(b_start))
             model.backward(lr=lr)
 
+        
+
+            for i in range(128):
+                correct += int(np.argmax(logits[i,:]) == np.argmax(y_train[b_start+i, :]))
+                # correct += np.sum([np.argmax(row) for row in logits] == [ y_train[b_start:b_end]] )
+            
             loss_sum += loss
             b_start += bs
 
@@ -388,6 +417,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
         # break
         # Accuracy loss
         print(loss_sum / float(x_train.shape[0]) )
+        print(correct / float(x_train.shape[0]) )
 
 
 
