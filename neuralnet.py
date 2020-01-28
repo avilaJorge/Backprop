@@ -15,6 +15,7 @@
 import os, gzip, copy
 import yaml
 import numpy as np
+import KFold
 
 
 def load_config(path):
@@ -133,7 +134,7 @@ class Activation():
         elif self.activation_type == "ReLU":
             return self.ReLU(a)
 
-    def backward(self, delta):
+    def backward(self, delta, lr=None):
         """
         Compute the backward pass.
         """
@@ -155,6 +156,7 @@ class Activation():
         # raise NotImplementedError("Sigmoid not implemented")
         res = np.divide(1., (np.add(1., np.exp(-x))))
         self.grad_ = np.multiply(res, np.subtract(1., res))
+        # print(self.grad_)
         return res
 
     def tanh(self, x):
@@ -162,8 +164,9 @@ class Activation():
         Implement tanh here.
         """
         # raise NotImplementedError("Tanh not implemented")
-        res = 1.7159*np.tanh((2/3)*x)
-        # res = np.tanh(x)
+        # TODO: Why multiply by these numbers?
+        # res = 1.7159*np.tanh((2/3)*x)
+        res = np.tanh(x)
         self.grad_ = np.subtract(1., np.power(res, 2))
         return res
 
@@ -173,7 +176,7 @@ class Activation():
         """
         # raise NotImplementedError("ReLu not implemented")
         res = np.maximum(np.zeros(x.shape), x)
-        self.grad_ = np.greater(x, np.zeros(x.shape), dtype=int)
+        self.grad_ = np.greater(x, np.zeros(x.shape), dtype=float)
         return res
 
     def grad_sigmoid(self):
@@ -216,14 +219,15 @@ class Layer():
         Define the architecture and create placeholder.
         """
         np.random.seed(42)
-        self.w = np.random.normal(0, 1/np.sqrt(in_units), (in_units, out_units))  # Declare the Weight matrix
-        self.b = None    # Create a placeholder for Bias
+        self.w = np.random.normal(0, 1./np.sqrt(in_units), (in_units, out_units))  # Declare the Weight matrix
+        # self.w = np.random.randn(in_units, out_units)
+        self.b = 0    # Create a placeholder for Bias
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
 
         self.d_x = None  # Save the gradient w.r.t x in this
         self.d_w = None  # Save the gradient w.r.t w in this
-        self.d_b = None  # Save the gradient w.r.t b in this
+        self.d_b = 0  # Save the gradient w.r.t b in this
 
     def __call__(self, x):
         """
@@ -243,17 +247,21 @@ class Layer():
         self.a = np.matmul(self.x, self.w)
         return self.a
 
-    def backward(self, delta):
+    def backward(self, delta, lr=None):
         """
         Write the code for backward pass. This takes in gradient from its next layer as input,
         computes gradient for its weights and the delta to pass to its previous layers.
         Return self.dx
         """
         # delta *
-        self.d_x = np.matmul(self.w, -1 * delta.T).T
-        self.d_w = np.dot(self.x.T, delta)
+        # print(delta.shape, self.w.shape)
+        self.d_x = np.matmul(self.w, -delta.T).T 
+        self.d_w = np.matmul(self.x.T, -delta)
+        # print("x")
+        # print(self.x.T)
         # TODO: Add learning rate.
-        self.w = np.subtract(self.w, self.d_w)
+        # print( lr * self.d_w)
+        self.w = np.subtract(self.w, lr * self.d_w)
         return self.d_x
 
 
@@ -295,40 +303,48 @@ class Neuralnetwork():
         If targets are provided, return loss as well.
         """
         self.x = copy.deepcopy(x)
+        self.targets = targets
         self.num_samples = self.x.shape[0]
-        loss = targets
 
+        z = self.x 
         for layer in self.layers:
-            self.x = layer(self.x)
-        self.y = np.array([softmax(z_i) for z_i in self.x])
+            z = layer(z)
+        self.y = softmax(z)
 
-        if loss is not None:
-            self.targets = targets
-            loss = np.sum([self.loss(y_i, targets) for y_i in self.y])/self.num_samples
+        if targets is not None:
+            loss = self.loss(self.y, targets) 
+            return softmax(self.y), loss
 
-        return self.y, loss
+        return softmax(self.y)
 
     def loss(self, logits, targets):
         '''
         compute the categorical cross-entropy loss and return it.
         '''
         # TODO: Are we expected to convert logits (i.e. call softmax) here?
-        return -1 * np.dot(targets.T, np.log(logits))
+        eps = 1e-6
+        return -1. * np.dot(targets, np.log(logits+eps).T)/self.num_samples
 
     def grad_loss(self, logits, targets):
         '''
         compute the gradient w.r.t y of cross-entropy loss
         '''
-        return -1 * np.dot(1/logits, targets)
+        # return -1. * np.dot(1./logits, targets)
+        # This should also backpropagate through Softmax as well
+        return np.subtract(targets, logits)
 
-    def backward(self):
+    def backward(self, lr=None):
         '''
         Implement backpropagation here.
         Call backward methods of individual layer's.
         '''
-        delta = np.array([np.subtract(y, t) for y, t in zip(self.y, self.targets)])
+        # delta = np.array([np.subtract(y, t) for y, t in zip(self.y, self.targets)])
+        # print(self.y.shape)
+        delta = self.grad_loss(self.y, self.targets)
         for layer in reversed(self.layers):
-            delta = layer.backward(delta)
+            # print("delta")
+            # print(delta)
+            delta = layer.backward(delta, lr=lr)
 
 
 def train(model, x_train, y_train, x_valid, y_valid, config):
@@ -339,7 +355,36 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     Use config to set parameters for training like learning rate, momentum, etc.
     """
 
-    raise NotImplementedError("Train method not implemented")
+    
+    bs = config["batch_size"]
+    bs = x_train.shape[0]
+    lr = config["learning_rate"]
+    # bs = 1
+
+    for e in range(config["epochs"]):
+        loss_sum = 0.
+        b_start = 0
+        print("----Epoch %d ---"%e)
+        while b_start < x_train.shape[0]-1:
+            # initial = (model.layers[0].w, model.layers[2].w,model.layers[4].w)
+
+            b_end = min(x_train.shape[0], b_start+bs)
+            print("--- Forward - batch %d----"%(b_start))
+            logits, loss = model.forward(x_train[b_start:b_end], y_train[b_start:b_end])
+            print("--- backward - batch %d----"%(b_start))
+            model.backward(lr=lr)
+
+            loss_sum += loss
+            b_start += bs
+
+            # print(model.layers[0].w, model.layers[2].w,model.layers[4].w)
+            # print( model.layers[0].w - initial[0], model.layers[2].w - initial[1], model.layers[4].w - initial[2])
+
+        #     break
+        # break
+        # Accuracy loss
+        print(loss_sum / (1 + (x_train.shape[0]/bs)) )
+
 
 
 def test(model, X_test, y_test):
@@ -357,12 +402,26 @@ if __name__ == "__main__":
     # Create the model
     model  = Neuralnetwork(config)
 
+    for layer in model.layers:
+        if isinstance(layer, Layer):
+            print(layer.w.shape)
+
     # Load the data
     x_train, y_train = load_data(path="./", mode="train")
     x_test,  y_test  = load_data(path="./", mode="t10k")
 
     # Create splits for validation data here.
     # x_valid, y_valid = ...
+    val_perc = 0.2
+
+    idxs = np.arange(x_train.shape[0])
+    np.random.shuffle(idxs)
+    val_end = x_train.shape[0] * (1.-val_perc)
+    mask = idxs > val_end
+
+
+    x_valid, y_valid = x_train[mask,:], y_train[mask]
+    x_train, y_train = x_train[~mask,:], y_train[~mask]
 
     # train the model
     train(model, x_train, y_train, x_valid, y_valid, config)
