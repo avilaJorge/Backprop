@@ -42,10 +42,10 @@ def one_hot_encoding(labels, num_classes=10):
     # res = np.zeros((len(labels), num_classes))
     # for label in labels:
     #     res[label] = 1
-    # return res 
+    # return res
     return np.array([[0 for a in range(0,label)]+
                     [1]+
-                    [0 for b in range(label+1,num_classes)] 
+                    [0 for b in range(label+1,num_classes)]
                     for label in labels])
 
 
@@ -258,13 +258,13 @@ class Layer():
         # print(self.w.shape)
         # print(self.x.shape)
         # print("-----------------")
-        
+
         self.d_x = np.dot(self.w, delta.T)
-        
+
         d_w_temp = np.zeros(self.w.shape)
-        for i in range(delta.shape[0]):                    
+        for i in range(delta.shape[0]):
             d_w_temp += np.outer(self.x.T[:,i], delta[i,:])
-        
+
         self.d_w = d_w_temp
         self.w = np.add(self.w, lr * self.d_w)
         return self.d_x.T
@@ -311,13 +311,13 @@ class Neuralnetwork():
         self.targets = targets
         self.num_samples = self.x.shape[0]
 
-        z = self.x 
+        z = self.x
         for layer in self.layers:
             z = layer(z)
         self.y = softmax(z)
 
         if targets is not None:
-            loss = self.loss(self.y, targets) 
+            loss = self.loss(self.y, targets)
             return softmax(self.y), loss
 
         return softmax(self.y)
@@ -361,7 +361,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     Use config to set parameters for training like learning rate, momentum, etc.
     """
 
-    
+
     bs = config["batch_size"]
     # bs = x_train.shape[0]
     lr = config["learning_rate"]
@@ -381,12 +381,12 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
             # print("--- backward - batch %d----"%(b_start))
             model.backward(lr=lr)
 
-        
+
 
             for i in range(128):
                 correct += int(np.argmax(logits[i,:]) == np.argmax(y_train[b_start+i, :]))
                 # correct += np.sum([np.argmax(row) for row in logits] == [ y_train[b_start:b_end]] )
-            
+
             loss_sum += loss
             b_start += bs
             # print(model.layers[0].w, model.layers[2].w,model.layers[4].w)
