@@ -256,27 +256,27 @@ class Layer():
         """
         # delta *
         # print(delta.shape, self.w.shape)
-
+        self.d_x = np.matmul(self.w, -1*delta.T).T
+        self.d_w = np.matmul(self.x.T, delta)
         # print(self.x.T.shape)
         # print(delta.shape)
-        # self.d_w = np.matmul(self.x.T, delta)
-        d_x_temp = []
-        d_w_temp = np.zeros(self.w.shape)
-        for i in range(128):
-            
-            temp = []
-            for j in range(self.in_units):
-                buffer = 0
-                for k in range(self.out_units):
-                    buffer += delta[i][k]*self.w[j][k]
-                temp.append(buffer)
-            d_x_temp.append(temp)  
-            
-
-            d_w_temp += np.outer(self.x.T[:,i], delta[i,:])
-        
-        self.d_w = d_w_temp
-        self.d_x = np.array(d_x_temp)
+        # d_x_temp = []
+        # d_w_temp = np.zeros(self.w.shape)
+        # for i in range(128):
+        #
+        #     temp = []
+        #     for j in range(self.in_units):
+        #         buffer = 0
+        #         for k in range(self.out_units):
+        #             buffer += delta[i][k]*self.w[j][k]
+        #         temp.append(buffer)
+        #     d_x_temp.append(temp)
+        #
+        #
+        #     d_w_temp += np.outer(self.x.T[:,i], delta[i,:])
+        #
+        # self.d_w = d_w_temp
+        # self.d_x = np.array(d_x_temp)
         # print(self.d_w.shape)
         # print("--------------")
         # print("x")
