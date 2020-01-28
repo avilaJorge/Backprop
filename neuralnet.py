@@ -247,7 +247,7 @@ class Layer():
         self.a = np.matmul(self.x, self.w)
         return self.a
 
-    def backward(self, delta, lr=None):
+    def backward(self, delta, lr=0.005):
         """
         Write the code for backward pass. This takes in gradient from its next layer as input,
         computes gradient for its weights and the delta to pass to its previous layers.
@@ -256,12 +256,13 @@ class Layer():
         # delta *
         # print(delta.shape, self.w.shape)
         self.d_x = np.matmul(self.w, -delta.T).T 
-        self.d_w = np.matmul(self.x.T, -delta)
+        self.d_w = np.matmul(self.x.T, delta)
         # print("x")
         # print(self.x.T)
         # TODO: Add learning rate.
         # print( lr * self.d_w)
-        self.w = np.subtract(self.w, lr * self.d_w)
+        # print(self.d_w, lr)
+        self.w = np.add(self.w, lr * self.d_w)
         return self.d_x
 
 
@@ -323,7 +324,10 @@ class Neuralnetwork():
         '''
         # TODO: Are we expected to convert logits (i.e. call softmax) here?
         eps = 1e-6
-        return -1. * np.dot(targets, np.log(logits+eps).T)/self.num_samples
+        # print(targets.shape, np.log(logits+eps).shape ,np.dot(targets, np.log(logits+eps).T).shape  )
+
+        return -1. * np.sum([np.dot(targets[i], np.log(logits[i]+eps)) for i in range(targets.shape[0])])
+        # return -1. * np.matmul(targets, np.log(logits+eps).T)#/self.num_samples
 
     def grad_loss(self, logits, targets):
         '''
@@ -333,7 +337,7 @@ class Neuralnetwork():
         # This should also backpropagate through Softmax as well
         return np.subtract(targets, logits)
 
-    def backward(self, lr=None):
+    def backward(self, lr=0.005):
         '''
         Implement backpropagation here.
         Call backward methods of individual layer's.
@@ -357,7 +361,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
 
     
     bs = config["batch_size"]
-    bs = x_train.shape[0]
+    # bs = x_train.shape[0]
     lr = config["learning_rate"]
     # bs = 1
 
@@ -369,9 +373,9 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
             # initial = (model.layers[0].w, model.layers[2].w,model.layers[4].w)
 
             b_end = min(x_train.shape[0], b_start+bs)
-            print("--- Forward - batch %d----"%(b_start))
+            # print("--- Forward - batch %d----"%(b_start))
             logits, loss = model.forward(x_train[b_start:b_end], y_train[b_start:b_end])
-            print("--- backward - batch %d----"%(b_start))
+            # print("--- backward - batch %d----"%(b_start))
             model.backward(lr=lr)
 
             loss_sum += loss
@@ -383,7 +387,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
         #     break
         # break
         # Accuracy loss
-        print(loss_sum / (1 + (x_train.shape[0]/bs)) )
+        print(loss_sum / float(x_train.shape[0]) )
 
 
 
