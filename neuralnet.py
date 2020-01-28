@@ -254,38 +254,20 @@ class Layer():
         computes gradient for its weights and the delta to pass to its previous layers.
         Return self.dx
         """
-        # delta *
-        # print(delta.shape, self.w.shape)
-
-        # print(self.x.T.shape)
         # print(delta.shape)
-        # self.d_w = np.matmul(self.x.T, delta)
-        d_x_temp = []
+        # print(self.w.shape)
+        # print(self.x.shape)
+        # print("-----------------")
+        
+        self.d_x = np.dot(self.w, delta.T)
+        
         d_w_temp = np.zeros(self.w.shape)
-        for i in range(128):
-            
-            temp = []
-            for j in range(self.in_units):
-                buffer = 0
-                for k in range(self.out_units):
-                    buffer += delta[i][k]*self.w[j][k]
-                temp.append(buffer)
-            d_x_temp.append(temp)  
-            
-
+        for i in range(delta.shape[0]):                    
             d_w_temp += np.outer(self.x.T[:,i], delta[i,:])
         
         self.d_w = d_w_temp
-        self.d_x = np.array(d_x_temp)
-        # print(self.d_w.shape)
-        # print("--------------")
-        # print("x")
-        # print(self.x.T)
-        # TODO: Add learning rate.
-        # print( lr * self.d_w)
-        # print(self.d_w, lr)
         self.w = np.add(self.w, lr * self.d_w)
-        return self.d_x
+        return self.d_x.T
 
 
 class Neuralnetwork():
@@ -368,8 +350,6 @@ class Neuralnetwork():
         # print(self.y.shape)
         delta = self.grad_loss(self.y, self.targets)
         for layer in reversed(self.layers):
-            # print("delta")
-            # print(delta)
             delta = layer.backward(delta, lr=lr)
 
 
@@ -409,7 +389,6 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
             
             loss_sum += loss
             b_start += bs
-
             # print(model.layers[0].w, model.layers[2].w,model.layers[4].w)
             # print( model.layers[0].w - initial[0], model.layers[2].w - initial[1], model.layers[4].w - initial[2])
 

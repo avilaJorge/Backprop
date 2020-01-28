@@ -1,7 +1,7 @@
 import neuralnet
 import numpy as np
-from sklearn.model_selection import StratifiedKFold
-from sklearn import datasets
+# from sklearn.model_selection import StratifiedKFold
+# from sklearn import datasets
 from PCA import PCA
 
 NUM_CATEGORIES = 10
@@ -66,7 +66,8 @@ for l in layer_layers:
             # Forward for safety, back, get weight gradient
             _, _ = net.forward(x_sample, y_sample)
             net.backward()
-            actual = net.layers[layer].d_w[i,j]
+            #because the definition is different
+            actual = - net.layers[layer].d_w[i,j]
 
             # Compare
             diff = np.abs(approx - actual)
@@ -74,6 +75,7 @@ for l in layer_layers:
             # print(approx, actual)
             assert(pass_test)
             counter += 1
+print(counter)
 
 
 # Example usage for Sklearn StratifiedKFold
