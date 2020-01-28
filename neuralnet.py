@@ -260,12 +260,7 @@ class Layer():
         # print("-----------------")
 
         self.d_x = np.dot(self.w, delta.T)
-
-        d_w_temp = np.zeros(self.w.shape)
-        for i in range(delta.shape[0]):
-            d_w_temp += np.outer(self.x.T[:,i], delta[i,:])
-
-        self.d_w = d_w_temp
+        self.d_w = np.matmul(self.x.T, delta)
         self.w = np.add(self.w, lr * self.d_w)
         return self.d_x.T
 
