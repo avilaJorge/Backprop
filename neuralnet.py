@@ -15,7 +15,6 @@
 import os, gzip, copy
 import yaml
 import numpy as np
-import KFold
 
 
 def load_config(path):
@@ -75,11 +74,15 @@ def softmax(x):
     Implement the softmax function here.
     Remember to take care of the overflow condition.
     """
-    # raise NotImplementedError("Softmax not implemented")
     # Using this: https://stats.stackexchange.com/questions/304758/softmax-overflow
-    x_reduced = np.subtract(x, x.max())
-    norm_fac = np.sum(np.exp(x_reduced))
-    return np.divide(np.exp(x_reduced), norm_fac)
+    def helper(row):
+        x_reduced = np.subtract(row, row.max())
+        norm_fac = np.sum(np.exp(x_reduced))
+        return np.divide(np.exp(x_reduced), norm_fac)
+
+    if x.ndim == 1: x.reshape((-1,1))
+    ret = np.array([helper(x_i) for x_i in x])
+    return ret
 
 
 def average(x):
@@ -283,7 +286,9 @@ class Neuralnetwork():
         self.x = None        # Save the input to forward in this
         self.y = None        # Save the output vector of model in this
         self.targets = None  # Save the targets in forward in this variable
-        self.num_samples = 0 # Number of samples in input
+
+        self.export_1 = True
+        self.export_2 = True
 
         # Add layers specified by layer_specs.
         for i in range(len(config['layer_specs']) - 1):
@@ -323,10 +328,7 @@ class Neuralnetwork():
         '''
         # TODO: Are we expected to convert logits (i.e. call softmax) here?
         eps = 1e-6
-        # print(targets.shape, np.log(logits+eps).shape ,np.dot(targets, np.log(logits+eps).T).shape  )
-
         return -1. * np.sum([np.dot(targets[i], np.log(logits[i]+eps)) for i in range(targets.shape[0])])
-        # return -1. * np.matmul(targets, np.log(logits+eps).T)#/self.num_samples
 
     def grad_loss(self, logits, targets):
         '''
