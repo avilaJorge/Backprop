@@ -364,6 +364,8 @@ class Neuralnetwork():
         '''
         # TODO: Are we expected to convert logits (i.e. call softmax) here?
         eps = 1e-6
+        targets, logits = np.atleast_2d(targets, logits)
+
         return -1. * np.sum([np.dot(targets[i], np.log(logits[i]+eps)) for i in range(targets.shape[0])])
 
     def grad_loss(self, logits, targets):
