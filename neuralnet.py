@@ -137,7 +137,7 @@ class Activation():
         elif self.activation_type == "ReLU":
             return self.ReLU(a)
 
-    def backward(self, delta, lr=None):
+    def backward(self, delta, lr=None, lamda = None, momentum = None, momentum_gamma = None):
         """
         Compute the backward pass.
         """
@@ -232,6 +232,7 @@ class Layer():
         self.d_x = None  # Save the gradient w.r.t x in this
         self.d_w = None  # Save the gradient w.r.t w in this
         self.d_b = 0  # Save the gradient w.r.t b in this
+        self.last_dw = np.zeros((in_units,out_units))
 
     def __call__(self, x):
         """
@@ -251,7 +252,7 @@ class Layer():
         self.a = np.matmul(self.x, self.w)
         return self.a
 
-    def backward(self, delta, lr=0.005):
+    def backward(self, delta, lr=0.005, lamda = 0, momentum = True, momentum_gamma = 0.9):
         """
         Write the code for backward pass. This takes in gradient from its next layer as input,
         computes gradient for its weights and the delta to pass to its previous layers.
@@ -264,7 +265,12 @@ class Layer():
 
         self.d_x = np.dot(self.w, delta.T)
         self.d_w = np.matmul(self.x.T, delta)
-        self.w = np.add(self.w, lr * self.d_w)
+
+        if momentum:
+            self.d_w = momentum_gamma*self.last_dw + self.d_w
+            self.last_dw = self.d_w
+
+        self.w = np.add((1-lamda)*self.w, lr * self.d_w)
         return self.d_x.T
 
 
@@ -338,7 +344,7 @@ class Neuralnetwork():
         # This should also backpropagate through Softmax as well
         return np.subtract(targets, logits)
 
-    def backward(self, lr=0.005):
+    def backward(self, lr=0.005, lamda = 0, momentum = True, momentum_gamma = 0.9):
         '''
         Implement backpropagation here.
         Call backward methods of individual layer's.
@@ -347,7 +353,7 @@ class Neuralnetwork():
         # print(self.y.shape)
         delta = self.grad_loss(self.y, self.targets)
         for layer in reversed(self.layers):
-            delta = layer.backward(delta, lr=lr)
+            delta = layer.backward(delta, lr=lr, lamda = lamda, momentum = True, momentum_gamma = momentum_gamma)
 
 
 def train(model, x_train, y_train, x_valid, y_valid, config):
@@ -364,6 +370,11 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     lr = config["learning_rate"]
     # bs = 1
 
+    #regularization parameter
+    lamda = 0
+    momentum = config["momentum"]
+    momentum_gamma = config["momentum_gamma"]
+
     for e in range(config["epochs"]):
         loss_sum = 0.
         b_start = 0
@@ -376,7 +387,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
             # print("--- Forward - batch %d----"%(b_start))
             logits, loss = model.forward(x_train[b_start:b_end], y_train[b_start:b_end])
             # print("--- backward - batch %d----"%(b_start))
-            model.backward(lr=lr)
+            model.backward(lr=lr, lamda = lamda, momentum = momentum, momentum_gamma = momentum_gamma)
 
 
 
