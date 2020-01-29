@@ -20,11 +20,11 @@ import matplotlib.pyplot as plt
 
 NG_IMPLEMENTATION = False
 
-def load_config(path):
+def load_config(path, fname='config.yaml'):
     """
     Load the configuration from config.yaml.
     """
-    return yaml.load(open('config.yaml', 'r'), Loader=yaml.SafeLoader)
+    return yaml.load(open(fname, 'r'), Loader=yaml.SafeLoader)
 
 
 def normalize_data(img):
@@ -522,12 +522,18 @@ if __name__ == "__main__":
     # Load the configuration.
     config = load_config("./")
 
+    print("--- Config settings ---")
+    for k, v in config.items():
+        print("%s: %s"%(str(k), str(v)))
+
     # Create the model
     model  = Neuralnetwork(config)
 
-    for layer in model.layers:
+    print("--- Model summary ---")
+    for i in range(len(model.layers)):
+        layer = model.layers[i]
         if isinstance(layer, Layer):
-            print(layer.w.shape)
+            print("Layer %d: %d inputs, %d outputs" % (i, layer.w.shape[0], layer.w.shape[1]))
 
     # Load the data
     x_train, y_train = load_data(path="./", mode="train")
@@ -547,10 +553,12 @@ if __name__ == "__main__":
     x_train, y_train = x_train[~mask,:], y_train[~mask]
 
     # train the model
+    print("--- Training set: x: %s y: %s ---\n--- Validation set: x: %s y: %s ---" % 
+          (str(x_train.shape), str(y_train.shape), str(x_valid.shape), str(y_valid.shape)))
     history, bestmodel = train(model, x_train, y_train, x_valid, y_valid, config)
 
     test_acc = test(bestmodel, x_test, y_test, verbose=True)
 
     # plot_metric(history["trloss"], history["valloss"], "Epoch vs Training and Validation Loss", "Loss", "3c_trloss")
-    plot_history(history, "lr:0.01", "3c_lr01")
+    plot_history(history, "lr:0.001", "3c_lr001")
 

@@ -1,7 +1,5 @@
 import neuralnet
 import numpy as np
-# from sklearn.model_selection import StratifiedKFold
-# from sklearn import datasets
 from PCA import PCA
 
 NUM_CATEGORIES = 10
@@ -10,44 +8,40 @@ NUM_CATEGORIES = 10
 def from_one_hot(labels, num_cats):
     return np.matmul(np.arange(1, num_cats + 1), labels.T)
 
+def get_all_weights(net):
+    weights_to_check = []
+    layer_idxs = [l for l in range(len(net.layers)) if isinstance(net.layers[l], neuralnet.Layer)]
+    for l in layer_idxs:
+        print("new layer")
+        lay = net.layers[l]
+        for i in range(lay.w.shape[0]):
+            for j in range(lay.w.shape[1]):
+                weights_to_check.append( (l, i, j) )
+    return weights_to_check
 
-# Gets a sample from each category
-# def get_samples(labels, num_cats):
-#     samples = []
-#     lbls_needed = list(range(1, num_cats + 1))
-#     cat_labels = from_one_hot(labels, NUM_CATEGORIES)
-#     for i in range(cat_labels.shape[0]):
-#         if cat_labels[i] in lbls_needed:
-#             lbls_needed.remove(cat_labels[i])
-#             samples.append(i)
-#         if (len(cat_labels) == 0):
-#             break
-#     return samples
 
-config = neuralnet.load_config("./")
+config = neuralnet.load_config("./", fname="config_original.yaml")
 x_train, y_train = neuralnet.load_data(path="./", mode="train")
-# sample_idx = get_samples(y_train, NUM_CATEGORIES)
-# x_sample = x_train[sample_idx]
-# y_sample = y_train[sample_idx]
 x_sample = x_train[0,:].reshape(1,784)
 y_sample = y_train[0].reshape(1,10)
 
-print(x_sample.shape, y_sample.shape)
+print("x, y shapes: %s, %s" % (str(x_sample.shape), str(y_sample.shape)))
 
 epsilon = 1e-2
 layer = 0
 net = neuralnet.Neuralnetwork(config)
 
+weights_to_check = [(0), # 1 output bias
+                    (),  # 1 hidden bias
+                    (), (), # 2 hidden-output weights
+                    (), (), # 2 input-hidden weights 
+                    ]
+
 
 # approximation 
-i = 0
-j = 0
 counter = 0
-layer_layers = [l for l in net.layers if isinstance(l, neuralnet.Layer)]
-for l in layer_layers:
-    print("new layer")
-    for i in range(l.w.shape[0]):
-        for j in range(l.w.shape[1]):
+
+
             # Gets E(w+e)
             net.layers[layer].w[i, j] += epsilon
             y_hi, loss_hi = net.forward(x_sample, y_sample)
