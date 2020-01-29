@@ -87,7 +87,7 @@ def compute_approx(net, layer, i, j, eps, x_sample, y_sample, bias=False):
     y_hi, loss_hi = net.forward(x_sample, y_sample)
 
     # Gets E(w-e)
-    net.layers[layer].w[i, j]  -= (2*eps)
+    # net.layers[layer].w[i, j]  -= (2*eps)
     if not bias:
         net.layers[layer].w[i, j]  -= (2*eps)
     else:
