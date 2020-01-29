@@ -25,12 +25,8 @@ def main():
     locations = get_experiment_weights(net)
     # locations = get_all_weights(net)      # Tests all weights in network
     for location in locations:
-        if location[3] == 'w':
-            check_weight(net, location, epsilon, x_sample, y_sample)
-        elif location[3] == 'b':
-            check_bias(net, location, epsilon, x_sample, y_sample)
-
-
+            check_weight_bias(net, location, epsilon, x_sample, y_sample)
+        
 
 def get_experiment_weights(net):
     weights_to_check = [(2, 0, 0, 'b'), # 1 output bias
@@ -41,32 +37,26 @@ def get_experiment_weights(net):
     return weights_to_check
 
 
-def check_weight(net, location, epsilon, x_sample, y_sample):
+def check_weight_bias(net, location, epsilon, x_sample, y_sample):
     # Gets E(w+e)
     layer = location[0]
     i = location[1]
     j = location[2]
+    w_b = location[3]
 
-    print("Testing Weight in Layer %d, for layer input %d, layer output %d..." %(layer, i, j))
+    if w_b == "w":
+        print("Testing Weight in Layer %d, for layer input %d, layer output %d..." %(layer, i, j))
 
-    approx = compute_approx(net, layer, i, j, epsilon, x_sample, y_sample)
+        approx = compute_approx(net, layer, i, j, epsilon, x_sample, y_sample)
 
-    actual = compute_actual(net, layer, i, j, epsilon, x_sample, y_sample)
+        actual = compute_actual(net, layer, i, j, epsilon, x_sample, y_sample)
+    elif w_b == "b":
+        print("Testing Bias in Layer %d, for layer input %d, layer output %d..." %(layer, i, j))
 
-    compare_gradients(approx, actual, epsilon)
+        approx = compute_approx(net, layer, i, j, epsilon, x_sample, y_sample, bias=True)
 
+        actual = compute_actual(net, layer, i, j, epsilon, x_sample, y_sample, bias=True)
 
-def check_bias(net, location, epsilon, x_sample, y_sample):
-    # Gets E(w+e)
-    layer = location[0]
-    i = location[1]
-    j = location[2]
-
-    print("Testing Bias in Layer %d, for layer output %d..." %(layer, j))
-
-    approx = compute_approx(net, layer, i, j, epsilon, x_sample, y_sample, bias=True)
-
-    actual = compute_actual(net, layer, i, j, epsilon, x_sample, y_sample, bias=True)
 
     compare_gradients(approx, actual, epsilon)
 
@@ -105,7 +95,6 @@ def compute_approx(net, layer, i, j, eps, x_sample, y_sample, bias=False):
     y_lo, loss_lo = net.forward(x_sample, y_sample)
 
     # Sets weight back to original for actual gradient computation
-
     if not bias:
         net.layers[layer].w[i, j]  += eps
     else:
