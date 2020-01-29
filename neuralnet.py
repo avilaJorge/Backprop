@@ -15,7 +15,10 @@
 import os, gzip, copy
 import yaml
 import numpy as np
+import matplotlib.pyplot as plt
 
+
+NG_IMPLEMENTATION = False
 
 def load_config(path):
     """
@@ -206,6 +209,11 @@ class Activation():
         # if x <= 0: return 0, else return 1
         return self.grad_
 
+    def deepcopy(self):
+        result = Activation(self.activation_type)
+        if self.x is not None: result.x = self.x.copy()
+        return result
+
 
 class Layer():
     """
@@ -267,11 +275,31 @@ class Layer():
         self.d_w = np.matmul(self.x.T, delta)
 
         if momentum:
-            self.d_w = momentum_gamma*self.last_dw + self.d_w
-            self.last_dw = self.d_w
+            if NG_IMPLEMENTATION:
+                self.d_w = momentum_gamma*self.last_dw + ((1. - momentum_gamma)*self.d_w)
+                self.last_dw = self.d_w
+            else:
+                self.d_w = momentum_gamma*self.last_dw + self.d_w
+                self.last_dw = self.d_w
 
         self.w = np.add((1-lamda)*self.w, lr * self.d_w)
         return self.d_x.T
+
+    def deepcopy(self):
+        res = Layer(self.in_units, self.out_units)
+
+        res.w = self.w.copy()
+        res.b = self.b
+        if self.x is not None: res.x = self.x.copy()
+        if self.a is not None: res.a = self.a.copy()
+        res.in_units = self.in_units
+        res.out_units = self.out_units
+        if self.d_x is not None: res.d_x = self.d_x.copy()
+        if self.d_w is not None: res.d_w = self.d_w.copy()
+        res.d_b = self.d_b
+        if self.last_dw is not None: res.last_dw = self.last_dw.copy()
+
+        return res
 
 
 class Neuralnetwork():
@@ -295,6 +323,8 @@ class Neuralnetwork():
 
         self.export_1 = True
         self.export_2 = True
+
+        self.config = config
 
         # Add layers specified by layer_specs.
         for i in range(len(config['layer_specs']) - 1):
@@ -344,16 +374,24 @@ class Neuralnetwork():
         # This should also backpropagate through Softmax as well
         return np.subtract(targets, logits)
 
-    def backward(self, lr=0.005, lamda = 0, momentum = True, momentum_gamma = 0.9):
+    def backward(self, lr=0.005, lamda=0, momentum=True, momentum_gamma=0.9):
         '''
         Implement backpropagation here.
         Call backward methods of individual layer's.
         '''
-        # delta = np.array([np.subtract(y, t) for y, t in zip(self.y, self.targets)])
-        # print(self.y.shape)
         delta = self.grad_loss(self.y, self.targets)
         for layer in reversed(self.layers):
-            delta = layer.backward(delta, lr=lr, lamda = lamda, momentum = True, momentum_gamma = momentum_gamma)
+            delta = layer.backward(delta, lr=lr, lamda=lamda, momentum=momentum, momentum_gamma=momentum_gamma)
+
+    def deepcopy(self):
+        res = Neuralnetwork(self.config)
+        for i in range(len(self.layers)):
+            res.layers[i] = self.layers[i].deepcopy()
+        res.x = self.x.copy()
+        res.y = self.y.copy()
+        res.targets = self.targets.copy()
+
+        return res
 
 
 def train(model, x_train, y_train, x_valid, y_valid, config):
@@ -364,56 +402,109 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     Use config to set parameters for training like learning rate, momentum, etc.
     """
 
+    bs = config["batch_size"]                   # Batch Size
+    lr = config["learning_rate"]                # Learning rate
+    lamda = config["L2_penalty"]                # Regularization parameter
+    momentum = config["momentum"]               # Momentum flag
+    momentum_gamma = config["momentum_gamma"]   # Momentum param
 
-    bs = config["batch_size"]
-    # bs = x_train.shape[0]
-    lr = config["learning_rate"]
-    # bs = 1
-
-    #regularization parameter
-    lamda = 0
-    momentum = config["momentum"]
-    momentum_gamma = config["momentum_gamma"]
+    history = {"trloss":[],"tracc":[], "valloss":[], "valacc":[], "model":[]}
+    bestmodel = None
 
     for e in range(config["epochs"]):
         loss_sum = 0.
         b_start = 0
         correct = 0
-        print("----Epoch %d ---"%e)
+        print("----Epoch %d ---" % e)
         while b_start < x_train.shape[0]-1:
-            # initial = (model.layers[0].w, model.layers[2].w,model.layers[4].w)
 
+            # Forward pass
             b_end = min(x_train.shape[0], b_start+bs)
-            # print("--- Forward - batch %d----"%(b_start))
             logits, loss = model.forward(x_train[b_start:b_end], y_train[b_start:b_end])
-            # print("--- backward - batch %d----"%(b_start))
-            model.backward(lr=lr, lamda = lamda, momentum = momentum, momentum_gamma = momentum_gamma)
 
+            # Backwards pass
+            model.backward(lr=lr, lamda=lamda, momentum=momentum, momentum_gamma=momentum_gamma)
 
-
-            for i in range(128):
-                correct += int(np.argmax(logits[i,:]) == np.argmax(y_train[b_start+i, :]))
-                # correct += np.sum([np.argmax(row) for row in logits] == [ y_train[b_start:b_end]] )
-
+            # Calculate loss and accuracy
+            correct += np.sum(np.argmax(logits, axis=1) == np.argmax(y_train[b_start:b_start+bs, :], axis=1))
             loss_sum += loss
             b_start += bs
-            # print(model.layers[0].w, model.layers[2].w,model.layers[4].w)
-            # print( model.layers[0].w - initial[0], model.layers[2].w - initial[1], model.layers[4].w - initial[2])
 
-        #     break
-        # break
-        # Accuracy loss
-        print(loss_sum / float(x_train.shape[0]) )
-        print(correct / float(x_train.shape[0]) )
+        print("\tTrain loss:%f, acc:%f" % (loss_sum / float(x_train.shape[0]), correct / float(x_train.shape[0])))
+
+        # print("\tTr Acc: \t%f" % ())
+
+        history["trloss"].append(loss_sum / float(x_train.shape[0]))
+        history["tracc"].append(correct / float(x_train.shape[0]))
+
+        valloss, valacc = test(model, x_valid, y_valid)
+        print("\tValid loss:%f, acc:%f" % (valloss, valacc))
+        history["valloss"].append(valloss)
+        history["valacc"].append(valacc)
+
+        history["model"].append(model.deepcopy())
+
+        # print(len(history["valloss"][-6:]))
+        if len(history["valloss"][-6:]) == 5 and (np.greater(np.diff(history["valloss"][-6:]), 0.0)).all():
+            # print(np.diff(history["valloss"][-6:]))
+            # print(np.greater(np.diff(history["valloss"][-6:]), 0.0))
+
+            print("Early Stopping")
+            bestmodel = history["model"][-6:][int(np.argmin(history["valloss"][-6:]))]
+            break
+    
+    if bestmodel is None: 
+        bestmodel = history["model"][-1]
+
+    return history, bestmodel
 
 
-
-def test(model, X_test, y_test):
+def test(model, X_test, y_test, verbose=False):
     """
     Calculate and return the accuracy on the test set.
     """
 
-    raise NotImplementedError("Test method not implemented")
+    logits, loss = model.forward(X_test, y_test)
+    correct = np.sum(np.argmax(logits, axis=1) == np.argmax(y_test, axis=1))
+
+    loss = loss / float(x_train.shape[0])
+    acc = correct / float(x_train.shape[0])
+
+    if verbose:
+        print("Test set: x:%s, y:%s"% (str(X_test.shape), str(y_test.shape)))
+        print("\tLoss: \t%f" % (loss))
+        print("\tAcc:\t%f" % (acc))
+    return loss, acc
+    
+
+def plot_metric(trdata, valdata, title, ylabel, savename):
+    plt.figure(figsize=(4,4), dpi=200)
+    plt.plot(np.arange(len(trdata)), trdata)
+    plt.plot(np.arange(len(valdata)), valdata)
+    plt.title(title)
+    plt.xlabel("Epochs")
+    plt.ylabel(ylabel)
+
+    plt.show()
+    plt.savefig("./images/%s.png"%savename)
+
+def plot_history(history, title_append, savename):
+    # Loss figure
+    plt.figure(dpi=200)
+    plt.plot(np.arange(len(history["trloss"])), history["trloss"])
+    plt.plot(np.arange(len(history["valloss"])), history["valloss"])
+    plt.title("Training epochs vs. train/validation Loss for %s"%title_append)
+    plt.ylabel("Loss")
+    plt.xlabel("Epochs")
+    plt.savefig("./images/%s_loss.png"%savename)
+
+    plt.figure(dpi=200)
+    plt.plot(np.arange(len(history["tracc"])), history["tracc"])
+    plt.plot(np.arange(len(history["valacc"])), history["valacc"])
+    plt.title("Training epochs vs. train/validation Accuracy for %s"%title_append)
+    plt.ylabel("Accuracy")
+    plt.xlabel("Epochs")
+    plt.savefig("./images/%s_acc.png"%savename)
 
 
 if __name__ == "__main__":
@@ -445,6 +536,10 @@ if __name__ == "__main__":
     x_train, y_train = x_train[~mask,:], y_train[~mask]
 
     # train the model
-    train(model, x_train, y_train, x_valid, y_valid, config)
+    history, bestmodel = train(model, x_train, y_train, x_valid, y_valid, config)
 
-    test_acc = test(model, x_test, y_test)
+    test_acc = test(bestmodel, x_test, y_test, verbose=True)
+
+    # plot_metric(history["trloss"], history["valloss"], "Epoch vs Training and Validation Loss", "Loss", "3c_trloss")
+    plot_history(history, "test 0", "test0")
+
