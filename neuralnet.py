@@ -232,15 +232,16 @@ class Layer():
         np.random.seed(42)
         self.w = np.random.normal(0, 1./np.sqrt(in_units), (in_units, out_units))  # Declare the Weight matrix
         # self.w = np.random.randn(in_units, out_units)
-        self.b = 0    # Create a placeholder for Bias
+        self.b = np.zeros((1, out_units))    # Create a placeholder for Bias
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
         self.in_units = in_units
         self.out_units = out_units
         self.d_x = None  # Save the gradient w.r.t x in this
         self.d_w = None  # Save the gradient w.r.t w in this
-        self.d_b = 0  # Save the gradient w.r.t b in this
-        self.last_dw = np.zeros((in_units,out_units))
+        self.d_b = None  # Save the gradient w.r.t b in this
+        self.last_dw = np.zeros((in_units, out_units))
+        self.last_db = np.zeros((1, out_units))
 
     def __call__(self, x):
         """
@@ -257,7 +258,8 @@ class Layer():
         # Bias Initialized to 0 according to https://piazza.com/class/k53fkn2c83f53l?cid=197
         # Assume x is batch first
         self.x = x
-        self.a = np.matmul(self.x, self.w)
+        self.a = np.add(np.matmul(self.x, self.w), self.b)
+        # print(self.a.shape)
         return self.a
 
     def backward(self, delta, lr=0.005, lamda = 0, momentum = True, momentum_gamma = 0.9):
@@ -273,16 +275,23 @@ class Layer():
 
         self.d_x = np.dot(self.w, delta.T)
         self.d_w = np.matmul(self.x.T, delta)
+        self.d_b = np.matmul(np.ones((1,delta.shape[0])), delta)
+        # print(self.d_b.shape)
 
         if momentum:
             if NG_IMPLEMENTATION:
                 self.d_w = momentum_gamma*self.last_dw + ((1. - momentum_gamma)*self.d_w)
                 self.last_dw = self.d_w
+                self.d_b = momentum_gamma*self.last_db + ((1. - momentum_gamma)*self.d_b)
+                self.last_db = self.d_b
             else:
                 self.d_w = momentum_gamma*self.last_dw + self.d_w
                 self.last_dw = self.d_w
+                self.d_b = momentum_gamma*self.last_db + self.d_b
+                self.last_db = self.d_b
 
-        self.w = np.add((1-lamda)*self.w, lr * self.d_w)
+        self.w = np.add((1.-lamda)*self.w, lr * self.d_w)
+        self.b = np.add((1.-lamda)*self.b, lr * self.d_b)
         return self.d_x.T
 
     def deepcopy(self):
@@ -543,5 +552,5 @@ if __name__ == "__main__":
     test_acc = test(bestmodel, x_test, y_test, verbose=True)
 
     # plot_metric(history["trloss"], history["valloss"], "Epoch vs Training and Validation Loss", "Loss", "3c_trloss")
-    plot_history(history, "test 0", "test0")
+    plot_history(history, "lr:0.01", "3c_lr01")
 
