@@ -73,6 +73,8 @@ def compare_gradients(approx, actual, eps):
         print("\t\t%f - %f = %f > %f" % (actual, approx, diff, eps**2))
     else:
         print("\tPASSED")
+        print("\t\tApproximation: %f, Actual: %f" % (actual, approx))
+        print("\t\t%f - %f = %f < %f" % (actual, approx, diff, eps**2))
 
 
 def compute_approx(net, layer, i, j, eps, x_sample, y_sample, bias=False):

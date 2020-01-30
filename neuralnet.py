@@ -41,10 +41,6 @@ def one_hot_encoding(labels, num_classes=10):
     """
     Encode labels using one hot encoding and return them.
     """
-    # res = np.zeros((len(labels), num_classes))
-    # for label in labels:
-    #     res[label] = 1
-    # return res
     return np.array([[0 for a in range(0,label)]+
                     [1]+
                     [0 for b in range(label+1,num_classes)]
@@ -125,8 +121,6 @@ class Activation():
         """
         return self.forward(a)
 
-
-
     def forward(self, a):
         """
         Compute the forward pass.
@@ -159,18 +153,14 @@ class Activation():
         """
         Implement the sigmoid activation here.
         """
-        # raise NotImplementedError("Sigmoid not implemented")
         res = np.divide(1., (np.add(1., np.exp(-x))))
         self.grad_ = np.multiply(res, np.subtract(1., res))
-        # print(self.grad_)
         return res
 
     def tanh(self, x):
         """
         Implement tanh here.
         """
-        # raise NotImplementedError("Tanh not implemented")
-        # TODO: Why multiply by these numbers?
         # res = 1.7159*np.tanh((2/3)*x)
         res = np.tanh(x)
         self.grad_ = np.subtract(1., np.power(res, 2))
@@ -180,7 +170,6 @@ class Activation():
         """
         Implement ReLU here.
         """
-        # raise NotImplementedError("ReLu not implemented")
         res = np.maximum(np.zeros(x.shape), x)
         self.grad_ = np.greater(x, np.zeros(x.shape), dtype=float)
         return res
@@ -189,7 +178,6 @@ class Activation():
         """
         Compute the gradient for sigmoid here.
         """
-        # raise NotImplementedError("Sigmoid gradient not implemented")
         # sigmoid(x) * (1 - sigmoid(x))
         return self.grad_
 
@@ -197,7 +185,6 @@ class Activation():
         """
         Compute the gradient for tanh here.
         """
-        # raise NotImplementedError("tanh gradient not implemented")
         # 1 - (tanh(x)^2)
         return self.grad_
 
@@ -205,11 +192,13 @@ class Activation():
         """
         Compute the gradient for ReLU here.
         """
-        # raise NotImplementedError("ReLU gradient not implemented")
         # if x <= 0: return 0, else return 1
         return self.grad_
 
     def deepcopy(self):
+        """
+        Returns a deepcopy of this object
+        """
         result = Activation(self.activation_type)
         if self.x is not None: result.x = self.x.copy()
         return result
@@ -231,7 +220,6 @@ class Layer():
         """
         np.random.seed(42)
         self.w = np.random.normal(0, 1./np.sqrt(in_units), (in_units, out_units))  # Declare the Weight matrix
-        # self.w = np.random.randn(in_units, out_units)
         self.b = np.zeros((1, out_units))    # Create a placeholder for Bias
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
@@ -256,10 +244,8 @@ class Layer():
         Return self.a
         """
         # Bias Initialized to 0 according to https://piazza.com/class/k53fkn2c83f53l?cid=197
-        # Assume x is batch first
         self.x = x
         self.a = np.add(np.matmul(self.x, self.w), self.b)
-        # print(self.b)
         return self.a
 
     def backward(self, delta, lr=0.005, lamda = 0, momentum = True, momentum_gamma = 0.9):
@@ -268,15 +254,12 @@ class Layer():
         computes gradient for its weights and the delta to pass to its previous layers.
         Return self.dx
         """
-        # print(delta.shape)
-        # print(self.w.shape)
-        # print(self.x.shape)
-        # print("-----------------")
-
+        # Calculate deltas for this batch
         self.d_x = np.dot(self.w, delta.T)
         self.d_w = np.matmul(self.x.T, delta)
         self.d_b = np.matmul(np.ones((1, delta.shape[0])), delta)/float(delta.shape[0])
 
+        # Calculate deltas with momentum
         if momentum:
             if NG_IMPLEMENTATION:
                 self.d_w = momentum_gamma*self.last_dw + ((1. - momentum_gamma)*self.d_w)
@@ -289,11 +272,15 @@ class Layer():
                 self.d_b = momentum_gamma*self.last_db + self.d_b
                 self.last_db = self.d_b
 
+        # Update weights and bias based on learning rate
         self.w = np.add((1.-lamda)*self.w, lr * self.d_w)
         self.b = np.add((1.-lamda)*self.b, lr * self.d_b)
         return self.d_x.T
 
     def deepcopy(self):
+        """
+        Returns a deepcopy of this object
+        """
         res = Layer(self.in_units, self.out_units)
 
         res.w = self.w.copy()
@@ -329,9 +316,6 @@ class Neuralnetwork():
         self.y = None        # Save the output vector of model in this
         self.targets = None  # Save the targets in forward in this variable
 
-        self.export_1 = True
-        self.export_2 = True
-
         self.config = config
 
         # Add layers specified by layer_specs.
@@ -351,15 +335,18 @@ class Neuralnetwork():
         Compute forward pass through all the layers in the network and return it.
         If targets are provided, return loss as well.
         """
+        # Save necessary variables
         self.x = copy.deepcopy(x)
         self.targets = targets
         self.num_samples = self.x.shape[0]
 
+        # Perform forward pass through all layers
         z = self.x
         for layer in self.layers:
             z = layer(z)
         self.y = softmax(z)
 
+        # Compute loss 
         if targets is not None:
             loss = self.loss(self.y, targets)
             return softmax(self.y), loss
@@ -370,8 +357,7 @@ class Neuralnetwork():
         '''
         compute the categorical cross-entropy loss and return it.
         '''
-        # TODO: Are we expected to convert logits (i.e. call softmax) here?
-        eps = 1e-6
+        eps = 1e-6  # smoothing
         targets, logits = np.atleast_2d(targets, logits)
 
         return -1. * np.sum([np.dot(targets[i], np.log(logits[i]+eps)) for i in range(targets.shape[0])])
@@ -380,8 +366,7 @@ class Neuralnetwork():
         '''
         compute the gradient w.r.t y of cross-entropy loss
         '''
-        # return -1. * np.dot(1./logits, targets)
-        # This should also backpropagate through Softmax as well
+        # Returns gradient of softmax as well as cross-entropy loss
         return np.subtract(targets, logits)
 
     def backward(self, lr=0.005, lamda=0, momentum=True, momentum_gamma=0.9):
@@ -389,11 +374,15 @@ class Neuralnetwork():
         Implement backpropagation here.
         Call backward methods of individual layer's.
         '''
+        # Backpropagates through all layers
         delta = self.grad_loss(self.y, self.targets)
         for layer in reversed(self.layers):
             delta = layer.backward(delta, lr=lr, lamda=lamda, momentum=momentum, momentum_gamma=momentum_gamma)
 
     def deepcopy(self):
+        """
+        Returns a deepcopy of this object
+        """
         res = Neuralnetwork(self.config)
         for i in range(len(self.layers)):
             res.layers[i] = self.layers[i].deepcopy()
@@ -412,40 +401,47 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     Use config to set parameters for training like learning rate, momentum, etc.
     """
 
+    # Sets Config fil variables
     bs = config["batch_size"]                   # Batch Size
     lr = config["learning_rate"]                # Learning rate
     lamda = config["L2_penalty"]                # Regularization parameter
     momentum = config["momentum"]               # Momentum flag
     momentum_gamma = config["momentum_gamma"]   # Momentum param
 
+    # Sets up history object to track metrics
     history = {"trloss":[],"tracc":[], "valloss":[], "valacc":[], "model":[]}
     bestmodel = None
 
+    idxs = [idx for idx in range(x_train.shape[0])]
     for e in range(config["epochs"]):
         loss_sum = 0.
         b_start = 0
         correct = 0
+        # Mini-batch Stochastic Gradient Descent
+        np.random.shuffle(idxs)
         print("----Epoch %d ---" % e)
         while b_start < x_train.shape[0]-1:
-
-            # Forward pass
+            # Get batch
             b_end = min(x_train.shape[0], b_start+bs)
-            logits, loss = model.forward(x_train[b_start:b_end], y_train[b_start:b_end])
+            x_batch, y_batch = x_train[idxs[b_start:b_end]], y_train[idxs[b_start:b_end],:]
+            
+            # Forward pass
+            logits, loss = model.forward(x_batch, y_batch)
 
             # Backwards pass
             model.backward(lr=lr, lamda=lamda, momentum=momentum, momentum_gamma=momentum_gamma)
 
             # Calculate loss and accuracy
-            correct += np.sum(np.argmax(logits, axis=1) == np.argmax(y_train[b_start:b_start+bs, :], axis=1))
+            correct += np.sum(np.argmax(logits, axis=1) == np.argmax(y_batch, axis=1))
             loss_sum += loss
             b_start += bs
 
-        print("\tTrain loss:%f, acc:%f" % (loss_sum / float(x_train.shape[0]), correct / float(x_train.shape[0])))
-
-        # print("\tTr Acc: \t%f" % ())
-
-        history["trloss"].append(loss_sum / float(x_train.shape[0]))
-        history["tracc"].append(correct / float(x_train.shape[0]))
+        # Calculate 
+        loss = loss_sum / float(x_train.shape[0])
+        acc = correct / float(x_train.shape[0])
+        print("\tTrain loss:%f, acc:%f" % (loss, acc))
+        history["trloss"].append(loss)
+        history["tracc"].append(acc)
 
         valloss, valacc = test(model, x_valid, y_valid)
         print("\tValid loss:%f, acc:%f" % (valloss, valacc))
@@ -559,5 +555,5 @@ if __name__ == "__main__":
     test_acc = test(bestmodel, x_test, y_test, verbose=True)
 
     # plot_metric(history["trloss"], history["valloss"], "Epoch vs Training and Validation Loss", "Loss", "3c_trloss")
-    plot_history(history, "L2 penalty: 0.001", "3d_l2p001")
+    plot_history(history, "Sigmoid Actications", "3e_sig")
 
