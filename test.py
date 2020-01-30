@@ -10,7 +10,7 @@ def main():
 
     # Build network with original config for 3 layer network
     config = neuralnet.load_config("./", fname="config_original.yaml")
-    net = neuralnet.Neuralnetwork(config)
+
 
     # Load training data
     x_train, y_train = neuralnet.load_data(path="./", mode="train")
@@ -22,17 +22,19 @@ def main():
     epsilon = 1e-1
 
     # Get list of weight locations to test
-    locations = get_experiment_weights(net)
+    locations = get_experiment_weights()
     # locations = get_all_weights(net)      # Tests all weights in network
     for location in locations:
-            check_weight_bias(net, location, epsilon, x_sample, y_sample)
+        net = neuralnet.Neuralnetwork(config)
+        check_weight_bias(net, location, epsilon, x_sample, y_sample)
+        # break
         
 
-def get_experiment_weights(net):
-    weights_to_check = [(2, 0, 0, 'b'), # 1 output bias
-                        (0, 0, 0, 'b'),  # 1 hidden bias
-                        (2, 0, 0, 'w'), (2, 0, 0, 'w'), # 2 hidden-output weights
-                        (0, 0, 0, 'w'), (0, 0, 0, 'w'), # 2 input-hidden weights 
+def get_experiment_weights():
+    weights_to_check = [(0, 0, 15, 'b'), # 1 hidden bias
+                        (2, 0, 0, 'b'),  # 1 output bias
+                        (0, 2, 15, 'w'), (0, 9, 12, 'w'), # 2 input-hidden weights
+                        (2, 4, 7, 'w'), (2, 7, 4, 'w'), # 2 hidden-output weights
                         ]
     return weights_to_check
 
@@ -79,6 +81,7 @@ def compute_approx(net, layer, i, j, eps, x_sample, y_sample, bias=False):
     with a single weight modulated by eps, and computing the 
     approximation of the 1st derivative
     """
+
     # Gets E(w+e)
     if not bias:
         net.layers[layer].w[i, j]  += eps
@@ -87,7 +90,6 @@ def compute_approx(net, layer, i, j, eps, x_sample, y_sample, bias=False):
     y_hi, loss_hi = net.forward(x_sample, y_sample)
 
     # Gets E(w-e)
-    net.layers[layer].w[i, j]  -= (2*eps)
     if not bias:
         net.layers[layer].w[i, j]  -= (2*eps)
     else:
@@ -100,6 +102,8 @@ def compute_approx(net, layer, i, j, eps, x_sample, y_sample, bias=False):
     else:
         net.layers[layer].b[i, j]  += eps
 
+    # print(net.layers[layer].b[i, j], b_orig)
+    # assert(net.layers[layer].b[i, j] - b_orig < 1e-5)
     # Calculates approximation
     approx = (loss_hi - loss_lo)/(2*eps)
 

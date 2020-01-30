@@ -259,7 +259,7 @@ class Layer():
         # Assume x is batch first
         self.x = x
         self.a = np.add(np.matmul(self.x, self.w), self.b)
-        # print(self.a.shape)
+        # print(self.b)
         return self.a
 
     def backward(self, delta, lr=0.005, lamda = 0, momentum = True, momentum_gamma = 0.9):
@@ -275,8 +275,7 @@ class Layer():
 
         self.d_x = np.dot(self.w, delta.T)
         self.d_w = np.matmul(self.x.T, delta)
-        self.d_b = np.matmul(np.ones((1,delta.shape[0])), delta)
-        # print(self.d_b.shape)
+        self.d_b = np.matmul(np.ones((1, delta.shape[0])), delta)/float(delta.shape[0])
 
         if momentum:
             if NG_IMPLEMENTATION:
@@ -298,14 +297,14 @@ class Layer():
         res = Layer(self.in_units, self.out_units)
 
         res.w = self.w.copy()
-        res.b = self.b
+        res.b = self.b.copy()
         if self.x is not None: res.x = self.x.copy()
         if self.a is not None: res.a = self.a.copy()
         res.in_units = self.in_units
         res.out_units = self.out_units
         if self.d_x is not None: res.d_x = self.d_x.copy()
         if self.d_w is not None: res.d_w = self.d_w.copy()
-        res.d_b = self.d_b
+        if self.d_b is not None: res.d_b = self.d_b.copy()
         if self.last_dw is not None: res.last_dw = self.last_dw.copy()
 
         return res
