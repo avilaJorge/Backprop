@@ -409,7 +409,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     momentum_gamma = config["momentum_gamma"]   # Momentum param
 
     # Sets up history object to track metrics
-    history = {"trloss":[],"tracc":[], "valloss":[], "valacc":[], "model":[]}
+    history = {"trloss":[],"tracc":[], "valloss":[], "valacc":[], "model":[], "min_val_loss": float('inf')}
     bestmodel = None
 
     idxs = [idx for idx in range(x_train.shape[0])]
@@ -448,21 +448,18 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
         history["valloss"].append(valloss)
         history["valacc"].append(valacc)
 
-        history["model"].append(model.deepcopy())
+        if valloss < history["min_val_loss"]:
+            history["min_val_loss"] = valloss
+            history["model"] = model.deepcopy()
 
-        # print(len(history["valloss"][-6:]))
-        if len(history["valloss"][-6:]) == 5 and (np.greater(np.diff(history["valloss"][-6:]), 0.0)).all():
-            # print(np.diff(history["valloss"][-6:]))
-            # print(np.greater(np.diff(history["valloss"][-6:]), 0.0))
+        if len(history["valloss"][-config["early_stop_epoch"]:]) == config["early_stop_epoch"] \
+                and (np.greater(np.diff(history["valloss"][-config["early_stop_epoch"]:]), 0.0)).all():
 
             print("Early Stopping")
-            bestmodel = history["model"][-6:][int(np.argmin(history["valloss"][-6:]))]
             break
     
-    if bestmodel is None: 
-        bestmodel = history["model"][-1]
 
-    return history, bestmodel
+    return history, history["model"]
 
 
 def test(model, X_test, y_test, verbose=False):
@@ -473,8 +470,8 @@ def test(model, X_test, y_test, verbose=False):
     logits, loss = model.forward(X_test, y_test)
     correct = np.sum(np.argmax(logits, axis=1) == np.argmax(y_test, axis=1))
 
-    loss = loss / float(x_train.shape[0])
-    acc = correct / float(x_train.shape[0])
+    loss = loss / float(X_test.shape[0])
+    acc = correct / float(X_test.shape[0])
 
     if verbose:
         print("Test set: x:%s, y:%s"% (str(X_test.shape), str(y_test.shape)))
@@ -536,7 +533,7 @@ if __name__ == "__main__":
 
     # Create splits for validation data here.
     # x_valid, y_valid = ...
-    val_perc = 0.2
+    val_perc = 0.4
 
     idxs = np.arange(x_train.shape[0])
     np.random.shuffle(idxs)
@@ -555,5 +552,5 @@ if __name__ == "__main__":
     test_acc = test(bestmodel, x_test, y_test, verbose=True)
 
     # plot_metric(history["trloss"], history["valloss"], "Epoch vs Training and Validation Loss", "Loss", "3c_trloss")
-    plot_history(history, "2 hidden layers", "3f_2h25")
+    plot_history(history, "100 hidden units", "3f_h100_lr000005")
 
