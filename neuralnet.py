@@ -555,5 +555,5 @@ if __name__ == "__main__":
     test_acc = test(bestmodel, x_test, y_test, verbose=True)
 
     # plot_metric(history["trloss"], history["valloss"], "Epoch vs Training and Validation Loss", "Loss", "3c_trloss")
-    plot_history(history, "25 hidden units", "3f_h25")
+    plot_history(history, "2 hidden layers", "3f_2h25")
 
