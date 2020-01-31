@@ -473,8 +473,8 @@ def test(model, X_test, y_test, verbose=False):
     logits, loss = model.forward(X_test, y_test)
     correct = np.sum(np.argmax(logits, axis=1) == np.argmax(y_test, axis=1))
 
-    loss = loss / float(x_train.shape[0])
-    acc = correct / float(x_train.shape[0])
+    loss = loss / float(X_test.shape[0])
+    acc = correct / float(X_test.shape[0])
 
     if verbose:
         print("Test set: x:%s, y:%s"% (str(X_test.shape), str(y_test.shape)))
