@@ -2,7 +2,7 @@
 layer_specs: [784, 25, 10]
 
 # Type of non-linear activation function to be used for the layers.
-activation: "ReLU"
+activation: "tanh"
 
 # The learning rate to be used for training.
 learning_rate: 0.00001
@@ -26,4 +26,4 @@ L2_penalty: 0.0000
 momentum: True
 
 # Value for the parameter 'gamma' in momentum
-momentum_gamma: 0.9
+momentum_gamma: 0.5
