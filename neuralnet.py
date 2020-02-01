@@ -448,8 +448,6 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
         history["valloss"].append(valloss)
         history["valacc"].append(valacc)
 
-        # history["model"].append(model.deepcopy())
-
         if valloss < history["min_val_loss"]:
             history["min_val_loss"] = valloss
             history["model"] = model.deepcopy()
@@ -535,7 +533,7 @@ if __name__ == "__main__":
 
     # Create splits for validation data here.
     # x_valid, y_valid = ...
-    val_perc = 0.2
+    val_perc = 0.4
 
     idxs = np.arange(x_train.shape[0])
     np.random.shuffle(idxs)
@@ -554,5 +552,5 @@ if __name__ == "__main__":
     test_acc = test(bestmodel, x_test, y_test, verbose=True)
 
     # plot_metric(history["trloss"], history["valloss"], "Epoch vs Training and Validation Loss", "Loss", "3c_trloss")
-    plot_history(history, "25 hidden units", "3f_h25")
+    plot_history(history, "100 hidden units", "3f_h100_lr000005")
 
