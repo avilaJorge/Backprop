@@ -494,19 +494,20 @@ def plot_metric(trdata, valdata, title, ylabel, savename):
 def plot_history(history, title_append, savename):
     # Loss figure
     plt.figure(dpi=200)
-    plt.plot(np.arange(len(history["trloss"])), history["trloss"])
-    plt.plot(np.arange(len(history["valloss"])), history["valloss"])
+    plt.plot(np.arange(len(history["trloss"])), history["trloss"], label="Training Loss")
+    plt.plot(np.arange(len(history["valloss"])), history["valloss"], label="Validation Loss")
     plt.title("Training epochs vs. train/validation Loss for %s"%title_append)
     plt.ylabel("Loss")
     plt.xlabel("Epochs")
     plt.savefig("./images/%s_loss.png"%savename)
 
     plt.figure(dpi=200)
-    plt.plot(np.arange(len(history["tracc"])), history["tracc"])
-    plt.plot(np.arange(len(history["valacc"])), history["valacc"])
+    plt.plot(np.arange(len(history["tracc"])), history["tracc"], label="Training Accuracy")
+    plt.plot(np.arange(len(history["valacc"])), history["valacc"], label="validation Accuracy")
     plt.title("Training epochs vs. train/validation Accuracy for %s"%title_append)
     plt.ylabel("Accuracy")
     plt.xlabel("Epochs")
+    plt.legend()
     plt.savefig("./images/%s_acc.png"%savename)
 
 
@@ -533,7 +534,7 @@ if __name__ == "__main__":
 
     # Create splits for validation data here.
     # x_valid, y_valid = ...
-    val_perc = 0.4
+    val_perc = 0.2
 
     idxs = np.arange(x_train.shape[0])
     np.random.shuffle(idxs)
@@ -552,5 +553,5 @@ if __name__ == "__main__":
     test_acc = test(bestmodel, x_test, y_test, verbose=True)
 
     # plot_metric(history["trloss"], history["valloss"], "Epoch vs Training and Validation Loss", "Loss", "3c_trloss")
-    plot_history(history, "100 hidden units", "3f_h100_lr000005")
+    plot_history(history, "50 hidden units", "3c_h50_lr00001")
 
